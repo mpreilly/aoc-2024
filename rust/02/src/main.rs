@@ -16,59 +16,42 @@ fn parse_line(line: &str) -> Vec<i32> {
 }
 
 fn part1(reports: &Vec<Vec<i32>>) -> usize {
-    // println!("{:#?}", reports.iter().map(|r| is_safe(r, -1)).collect::<Vec<_>>());
-    reports.iter().filter(|r| is_safe(r, -1)).count()
+    let is_safe_list: Vec<bool> = reports.iter().map(is_safe).collect();
+    // println!("{:#?}", is_safe_list);
+    is_safe_list.iter().filter(|&&r| r).count()
 }
 
 fn part2(reports: &Vec<Vec<i32>>) -> usize {
-    // println!("{:#?}", reports.iter().map(is_safe2).collect::<Vec<_>>());
-    reports.iter().filter(|r| is_safe2(r)).count()
+    let is_safe_list: Vec<bool> = reports.iter().map(is_safe2).collect();
+    // println!("{:#?}", is_safe_list);
+    is_safe_list.iter().filter(|&&r| r).count()
 }
 
-fn is_safe(report: &Vec<i32>, skip_index: i32) -> bool {
-    if report.len() < 2 {
-        return true;
-    }
-    let start_index = if skip_index == 0 { 1 } else { 0 };
-    let mut last_change: i32 = report[start_index + 1] - report[start_index];
-    let mut last_num: i32 = report[start_index];
-    for i in (start_index + 1)..report.len() {
-        if i as i32 == skip_index {
-            continue;
-        }
-        let change = report[i] - last_num;
-        if sign(change) != sign(last_change) || change == 0 || change.abs() > 3 {
+fn is_safe(report: &Vec<i32>) -> bool {
+    let mut last_change: Option<i32> = None;
+    for i in 1..report.len() {
+        let change = report[i] - report[i-1];
+        if change == 0 || change.abs() > 3 {
             return false;
         }
-        last_change = change;
-        last_num = report[i];
-    }
-    true
-}
-
-fn is_safe_reverse(report: &Vec<i32>, skip_index: i32) -> bool {
-    if report.len() < 2 {
-        return true;
-    }
-    let start_index = if skip_index == 0 { 1 } else { 0 };
-    let mut last_change: i32 = report[start_index + 1] - report[start_index];
-    let mut last_num: i32 = report[start_index];
-    for i in ((start_index + 1)..report.len()).rev() {
-        if i as i32 == skip_index {
-            continue;
+        if let Some(lc) = last_change {
+            if sign(change) != sign(lc) {
+                return false;
+            }
         }
-        let change = report[i] - last_num;
-        if sign(change) != sign(last_change) || change == 0 || change.abs() > 3 {
-            return false;
-        }
-        last_change = change;
-        last_num = report[i];
+        last_change = Some(change);
     }
     true
 }
 
 fn is_safe2(report: &Vec<i32>) -> bool {
-    (0..report.len()).any(|i| is_safe(report, i as i32) || is_safe_reverse(report, i as i32))
+    (0..report.len()).any(|i| is_safe(&copy_and_remove_index(report, i)))
+}
+
+fn copy_and_remove_index(report: &Vec<i32>, index: usize) -> Vec<i32> {
+    let mut new_vec = report.clone();
+    new_vec.remove(index);
+    new_vec
 }
 
 fn sign(n: i32) -> bool {
