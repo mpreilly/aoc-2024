@@ -24,15 +24,7 @@ fn line_to_tuple(line: &str) -> (i32, i32) {
 }
 
 fn part1(l1: &[i32], l2: &[i32]) -> i32 {
-    l1.iter().zip(l2).fold(0, |acc, (a, b)| acc + dist(a, b))
-}
-
-fn dist(a: &i32, b: &i32) -> i32 {
-    if a > b {
-        a - b
-    } else {
-        b - a
-    }
+    l1.iter().zip(l2).fold(0, |acc, (a, b)| acc + (b - a).abs())
 }
 
 fn part2(l1:&[i32], l2: &[i32]) -> i32 {
