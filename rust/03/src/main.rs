@@ -45,3 +45,24 @@ fn part2(input: &str) -> i32 {
         }
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn get_input() -> String {
+        fs::read_to_string("input.txt").unwrap()
+    }
+
+    #[test]
+    fn part1_answer() {
+        let result = part1(&get_input());
+        assert_eq!(result, 156388521);
+    }
+
+    #[test]
+    fn part2_answer() {
+        let result = part2(&get_input());
+        assert_eq!(result, 75920122);
+    }
+}
