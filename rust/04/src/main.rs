@@ -16,28 +16,30 @@ fn parse_grid(toy: bool) -> Vec<Vec<char>> {
 
 fn part1(grid: &Vec<Vec<char>>) -> i32 {
     let mut xmas_count = 0;
-    let mas = vec!['M', 'A', 'S'];
+    let xmas = ['X', 'M', 'A', 'S'];
 
     for r in 0..grid.len() {
         for c in 0..grid[r].len() {
-            if grid[r][c] == 'X' {
-                xmas_count += search_all_dirs(grid, &mas[..], r as i32, c as i32)
-            }
+            xmas_count += search_all_dirs(grid, &xmas, r as i32, c as i32);
         }
     }
     xmas_count
 }
 
 fn search_all_dirs(grid: &Vec<Vec<char>>, search_str: &[char], start_r: i32, start_c: i32) -> i32 {
+    if grid[start_r as usize][start_c as usize] != search_str[0] {
+        return 0;
+    }
+
     let mut count = 0;
     for r_move in -1..=1 {
         for c_move in -1..=1 {
             if r_move == 0 && c_move == 0 {
                 continue;
             }
-            if search(
+            if search_direction(
                 grid,
-                search_str,
+                &search_str[1..],
                 start_r + r_move,
                 start_c + c_move,
                 r_move,
@@ -50,7 +52,7 @@ fn search_all_dirs(grid: &Vec<Vec<char>>, search_str: &[char], start_r: i32, sta
     count
 }
 
-fn search(
+fn search_direction(
     grid: &Vec<Vec<char>>,
     search_str: &[char],
     start_r: i32,
@@ -69,7 +71,7 @@ fn search(
         return false;
     }
     grid[start_r as usize][start_c as usize] == search_str[0]
-        && search(
+        && search_direction(
             grid,
             &search_str[1..],
             start_r + r_move,
@@ -84,7 +86,7 @@ fn part2(grid: &Vec<Vec<char>>) -> i32 {
 
     for r in 0..grid.len() {
         for c in 0..grid[r].len() {
-            if grid[r][c] == 'A' && check_mas_crossing(grid, r, c) {
+            if check_mas_crossing(grid, r, c) {
                 xmas_count += 1;
             }
         }
@@ -97,17 +99,16 @@ fn part2_functional(grid: &Vec<Vec<char>>) -> i32 {
     (0..grid.len()).fold(0, |grid_acc, r| {
         grid_acc
             + (0..grid[r].len()).fold(0, |row_acc, c| {
-                row_acc
-                    + if grid[r][c] == 'A' && check_mas_crossing(grid, r, c) {
-                        1
-                    } else {
-                        0
-                    }
+                row_acc + if check_mas_crossing(grid, r, c) { 1 } else { 0 }
             })
     })
 }
 
 fn check_mas_crossing(grid: &Vec<Vec<char>>, a_r: usize, a_c: usize) -> bool {
+    if grid[a_r][a_c] != 'A' {
+        return false;
+    }
+
     // if A is at the edge, can't have anything outside
     if a_r == 0 || a_r >= grid.len() - 1 || a_c == 0 || a_c >= grid[0].len() - 1 {
         return false;
