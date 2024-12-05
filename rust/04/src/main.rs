@@ -5,6 +5,7 @@ fn main() {
 
     println!("part1: {}", part1(&grid));
     println!("part2: {}", part2(&grid));
+    println!("part2 again: {}", part2_functional(&grid));
 }
 
 fn parse_grid(toy: bool) -> Vec<Vec<char>> {
@@ -19,10 +20,6 @@ fn part1(grid: &Vec<Vec<char>>) -> i32 {
 
     for r in 0..grid.len() {
         for c in 0..grid[r].len() {
-            // println!("grid: {:?}", grid);
-            // println!("grid[r]: {:?}", grid[r]);
-            // println!("grid[r][c]: {:?}", grid[r][c]);
-            // println!("grid[r][c] == 'X': {:?}", grid[r][c] == 'X');
             if grid[r][c] == 'X' {
                 xmas_count += search_all_dirs(grid, &mas[..], r as i32, c as i32)
             }
@@ -95,16 +92,29 @@ fn part2(grid: &Vec<Vec<char>>) -> i32 {
     xmas_count
 }
 
-fn check_mas_crossing(grid: &Vec<Vec<char>>, start_r: usize, start_c: usize) -> bool {
-    let mas = vec!['M', 'A', 'S'];
+fn part2_functional(grid: &Vec<Vec<char>>) -> i32 {
+    // it's functional... but really disfunctional
+    (0..grid.len()).fold(0, |grid_acc, r| {
+        grid_acc
+            + (0..grid[r].len()).fold(0, |row_acc, c| {
+                row_acc
+                    + if grid[r][c] == 'A' && check_mas_crossing(grid, r, c) {
+                        1
+                    } else {
+                        0
+                    }
+            })
+    })
+}
 
+fn check_mas_crossing(grid: &Vec<Vec<char>>, a_r: usize, a_c: usize) -> bool {
     // if A is at the edge, can't have anything outside
-    if start_r == 0 || start_r >= grid.len() - 1 || start_c == 0 || start_c >= grid[0].len() - 1 {
+    if a_r == 0 || a_r >= grid.len() - 1 || a_c == 0 || a_c >= grid[0].len() - 1 {
         return false;
     }
 
     // need two of the four possible mas-layouts:
-    // starting r-1, c-1 and moving r+1 c+1
+    // r-1, c-1 -> r+1, c+1
     // r-1, c+1 -> r+1, c-1
     // r+1, c-1 -> r-1, c+1
     // r+1, r+1 -> r-1, c-1
@@ -112,9 +122,8 @@ fn check_mas_crossing(grid: &Vec<Vec<char>>, start_r: usize, start_c: usize) -> 
 
     for r_start in [-1, 1] {
         for c_start in [-1, 1] {
-            if grid[(start_r as i32 + r_start) as usize][(start_c as i32 + c_start) as usize] == 'M'
-                && grid[(start_r as i32 - r_start) as usize][(start_c as i32 - c_start) as usize]
-                    == 'S'
+            if grid[offset(a_r, r_start)][offset(a_c, c_start)] == 'M'
+                && grid[offset(a_r, -r_start)][offset(a_c, -c_start)] == 'S'
             {
                 mas_count += 1;
             }
@@ -122,6 +131,11 @@ fn check_mas_crossing(grid: &Vec<Vec<char>>, start_r: usize, start_c: usize) -> 
     }
 
     mas_count == 2
+}
+
+fn offset(index: usize, change: i32) -> usize {
+    // these conversions are fuckn annoying inline
+    ((index as i32) + change) as usize
 }
 
 #[cfg(test)]
@@ -137,6 +151,12 @@ mod tests {
     #[test]
     fn part2_answer() {
         let result = part2(&parse_grid(false));
+        assert_eq!(result, 1965);
+    }
+
+    #[test]
+    fn part2_functional_answer() {
+        let result = part2_functional(&parse_grid(false));
         assert_eq!(result, 1965);
     }
 }
