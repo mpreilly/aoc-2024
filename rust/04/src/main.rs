@@ -99,11 +99,7 @@ fn check_mas_crossing(grid: &Vec<Vec<char>>, start_r: usize, start_c: usize) -> 
     let mas = vec!['M', 'A', 'S'];
 
     // if A is at the edge, can't have anything outside
-    if start_r == 0
-        || start_r >= grid.len() - 1
-        || start_c == 0
-        || start_c >= grid[0].len() - 1
-    {
+    if start_r == 0 || start_r >= grid.len() - 1 || start_c == 0 || start_c >= grid[0].len() - 1 {
         return false;
     }
 
@@ -116,7 +112,10 @@ fn check_mas_crossing(grid: &Vec<Vec<char>>, start_r: usize, start_c: usize) -> 
 
     for r_start in [-1, 1] {
         for c_start in [-1, 1] {
-            if grid[(start_r as i32 + r_start) as usize][(start_c as i32 + c_start) as usize] == 'M' && grid[(start_r as i32 - r_start) as usize][(start_c as i32 - c_start) as usize] == 'S' {
+            if grid[(start_r as i32 + r_start) as usize][(start_c as i32 + c_start) as usize] == 'M'
+                && grid[(start_r as i32 - r_start) as usize][(start_c as i32 - c_start) as usize]
+                    == 'S'
+            {
                 mas_count += 1;
             }
         }
@@ -124,7 +123,6 @@ fn check_mas_crossing(grid: &Vec<Vec<char>>, start_r: usize, start_c: usize) -> 
 
     mas_count == 2
 }
-
 
 #[cfg(test)]
 mod tests {
