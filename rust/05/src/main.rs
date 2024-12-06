@@ -57,7 +57,7 @@ fn part1(updates: &Vec<Update>, rule_map: &RuleMap) -> u32 {
     updates
         .iter()
         .filter(|update| is_valid(update, rule_map))
-        .map(|update| update[update.len() / 2])
+        .map(middle_elem)
         .sum()
 }
 
@@ -74,6 +74,10 @@ fn is_valid(update: &Update, rule_map: &RuleMap) -> bool {
         pages_seen.insert(*page);
     }
     true
+}
+
+fn middle_elem(update: &Update) -> u32 {
+    update[update.len() / 2]
 }
 
 // 47|53
