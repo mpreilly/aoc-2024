@@ -56,16 +56,9 @@ fn parse_updates(update_str: &str) -> Vec<Update> {
 fn part1(updates: &Vec<Update>, rule_map: &RuleMap) -> u32 {
     updates
         .iter()
-        .map(|update| get_middle_if_valid(update, rule_map))
+        .filter(|update| is_valid(update, rule_map))
+        .map(|update| update[update.len() / 2])
         .sum()
-}
-
-fn get_middle_if_valid(update: &Update, rule_map: &RuleMap) -> u32 {
-    if is_valid(update, rule_map) {
-        update[update.len() / 2]
-    } else {
-        0
-    }
 }
 
 fn is_valid(update: &Update, rule_map: &RuleMap) -> bool {
@@ -80,7 +73,7 @@ fn is_valid(update: &Update, rule_map: &RuleMap) -> bool {
         }
         pages_seen.insert(*page);
     }
-    return true;
+    true
 }
 
 // 47|53
@@ -91,3 +84,15 @@ fn is_valid(update: &Update, rule_map: &RuleMap) -> bool {
 // 53 isn't among the numbers I've already seen.
 // otherwise, if 53 is later in the sequence, that's fine.
 //        And if it's not, they're not both in the update.
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn part1_answer() {
+        let input = parse_input(false);
+        let result = part1(&input.updates, &input.rules_per_page);
+        assert_eq!(result, 4959);
+    }
+}
