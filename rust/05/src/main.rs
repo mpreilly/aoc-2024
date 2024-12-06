@@ -64,8 +64,7 @@ fn part1(updates: &Vec<Update>, rule_map: &RuleMap) -> u32 {
 fn is_valid(update: &Update, rule_map: &RuleMap) -> bool {
     let mut pages_seen: HashSet<Page> = HashSet::new();
     for page in update {
-        let maybe_rules = rule_map.get(page);
-        if let Some(rules) = maybe_rules {
+        if let Some(rules) = rule_map.get(page) {
             // if any of these pages came before this one, it's invalid
             if pages_seen.intersection(rules).count() != 0 {
                 return false;
@@ -88,34 +87,36 @@ fn part2(updates: &Vec<Update>, rule_map: &RuleMap) -> u32 {
         .sum()
 }
 
-// for a given element, look at each element after it.
-//   if that element's rule list says the cur must be after it, move it there
 fn fix(update: &Update, rule_map: &RuleMap) -> Update {
     let mut fixed = update.clone();
 
     let mut i = 0;
     while i < fixed.len() {
-        let page = fixed[i];
+        let cur = fixed[i];
+        
         // search to end of list for pages that this page *should* be after.
-        // we'll move it to after the latest one.
-        let mut new_index = i;
-        for j in i..fixed.len() {
-            let maybe_other_rules= rule_map.get(&fixed[j]);
-            if let Some(rules) = maybe_other_rules {
-                if rules.contains(&page) {
-                    new_index = j
-                }
-            }
-        }
-        if new_index != i {
+        // we'll move it to after the last one.
+        let maybe_new_index = (i + 1..fixed.len())
+            .filter(|&j| cur_should_follow(cur, fixed[j], rule_map))
+            .max();
+
+        if let Some(new_index) = maybe_new_index {
             fixed.remove(i);
-            fixed.insert(new_index, page);
+            fixed.insert(new_index, cur);
         } else {
+            // we don't have a new element at the current index, so we can move on
             i += 1;
         }
     }
 
     fixed
+}
+
+fn cur_should_follow(cur: Page, other: Page, rule_map: &RuleMap) -> bool {
+    // if other doesn't even have rules on who should follow it, it's false. If it does, check for a.
+    rule_map
+        .get(&other)
+        .map_or_else(|| false, |rules| rules.contains(&cur))
 }
 
 #[cfg(test)]
