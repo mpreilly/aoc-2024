@@ -13,9 +13,9 @@ struct Input {
 
 fn main() {
     let input = parse_input(false);
-    // println!("input: {:?}", input);
 
-    println!("part 1: {}", part1(&input.updates, &input.rules_per_page))
+    println!("part 1: {}", part1(&input.updates, &input.rules_per_page));
+    println!("part 2: {}", part2(&input.updates, &input.rules_per_page));
 }
 
 fn parse_input(toy: bool) -> Input {
@@ -80,14 +80,43 @@ fn middle_elem(update: &Update) -> u32 {
     update[update.len() / 2]
 }
 
-// 47|53
-// if an update includes both page number 47 and page number 53,
-// then page number 47 must be printed at some point before page number 53
+fn part2(updates: &Vec<Update>, rule_map: &RuleMap) -> u32 {
+    updates
+        .iter()
+        .filter(|update| !is_valid(update, rule_map))
+        .map(|update| middle_elem(&fix(update, rule_map)))
+        .sum()
+}
 
-// should be sufficient to say, if I see 47, I just have to make sure
-// 53 isn't among the numbers I've already seen.
-// otherwise, if 53 is later in the sequence, that's fine.
-//        And if it's not, they're not both in the update.
+// for a given element, look at each element after it.
+//   if that element's rule list says the cur must be after it, move it there
+fn fix(update: &Update, rule_map: &RuleMap) -> Update {
+    let mut fixed = update.clone();
+
+    let mut i = 0;
+    while i < fixed.len() {
+        let page = fixed[i];
+        // search to end of list for pages that this page *should* be after.
+        // we'll move it to after the latest one.
+        let mut new_index = i;
+        for j in i..fixed.len() {
+            let maybe_other_rules= rule_map.get(&fixed[j]);
+            if let Some(rules) = maybe_other_rules {
+                if rules.contains(&page) {
+                    new_index = j
+                }
+            }
+        }
+        if new_index != i {
+            fixed.remove(i);
+            fixed.insert(new_index, page);
+        } else {
+            i += 1;
+        }
+    }
+
+    fixed
+}
 
 #[cfg(test)]
 mod tests {
@@ -98,5 +127,12 @@ mod tests {
         let input = parse_input(false);
         let result = part1(&input.updates, &input.rules_per_page);
         assert_eq!(result, 4959);
+    }
+
+    #[test]
+    fn part2_answer() {
+        let input = parse_input(false);
+        let result = part2(&input.updates, &input.rules_per_page);
+        assert_eq!(result, 4655);
     }
 }
