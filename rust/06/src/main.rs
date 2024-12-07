@@ -128,6 +128,11 @@ fn main() {
     println!("{}", part1(map))
 }
 
+fn get_input(toy: bool) -> String {
+    let path = if toy { "toy_input.txt" } else { "input.txt" };
+    fs::read_to_string(path).unwrap()
+}
+
 fn part1(mut map: Map) -> usize {
     let mut guard_positions: HashSet<Pos> = HashSet::new();
     guard_positions.insert(map.guard.pos);
@@ -138,11 +143,6 @@ fn part1(mut map: Map) -> usize {
     }
 
     guard_positions.len()
-}
-
-fn get_input(toy: bool) -> String {
-    let path = if toy { "toy_input.txt" } else { "input.txt" };
-    fs::read_to_string(path).unwrap()
 }
 
 #[cfg(test)]
