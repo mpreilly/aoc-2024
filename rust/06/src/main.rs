@@ -64,14 +64,48 @@ impl Guard {
 
 #[derive(Debug)]
 struct Map {
-    guard: Guard,
     obstacles: HashSet<Pos>,
     max_x: usize,
     max_y: usize,
 }
 
 impl Map {
-    fn from_string(s: &str) -> Map {
+    fn move_guard(&self, guard: &mut Guard, maybe_extra_obstacle: Option<Pos>) -> bool {
+        // if we're not actually using extra_obstacle, put it off the map
+        let extra_obstacle = maybe_extra_obstacle.unwrap_or(Pos {
+            x: self.max_x + 10,
+            y: self.max_y + 10,
+        });
+
+        // at most 4 possible directions. maybe the guard is trapped (??)
+        for _ in 0..4 {
+            if let Some(new_pos) = guard.next() {
+                if new_pos.x > self.max_x || new_pos.y > self.max_y {
+                    return false;
+                }
+                if self.obstacles.contains(&new_pos) || new_pos == extra_obstacle {
+                    guard.rotate();
+                } else {
+                    guard.advance();
+                    return true;
+                }
+            } else {
+                // this cat's off the map
+                return false;
+            }
+        }
+
+        false
+    }
+}
+
+struct State {
+    map: Map,
+    guard: Guard,
+}
+
+impl State {
+    fn from_string(s: &str) -> State {
         // flip lines so that +y is "up"
         let lines = s.lines().rev();
         let mut obstacles: HashSet<Pos> = HashSet::new();
@@ -90,50 +124,23 @@ impl Map {
             }
         }
 
-        Map {
+        State {
+            map: Map {
+                obstacles,
+                max_x: s.lines().next().unwrap().len() - 1,
+                max_y: s.lines().count() - 1,
+            },
             guard: guard.unwrap(),
-            obstacles,
-            max_x: s.lines().next().unwrap().len() - 1,
-            max_y: s.lines().count() - 1,
         }
-    }
-
-    fn move_guard(&mut self, maybe_extra_obstacle: Option<Pos>) -> bool {
-        // if we're not actually using extra_obstacle, put it off the map
-        let extra_obstacle = maybe_extra_obstacle.unwrap_or(Pos {
-            x: self.max_x + 10,
-            y: self.max_y + 10,
-        });
-
-        // at most 4 possible directions. maybe the guard is trapped (??)
-        for _ in 0..4 {
-            if let Some(new_pos) = self.guard.next() {
-                if new_pos.x > self.max_x || new_pos.y > self.max_y {
-                    return false;
-                }
-                if self.obstacles.contains(&new_pos) || new_pos == extra_obstacle {
-                    self.guard.rotate();
-                } else {
-                    self.guard.advance();
-                    return true;
-                }
-            } else {
-                // this cat's off the map
-                return false;
-            }
-        }
-
-        false
     }
 }
 
 fn main() {
     let input = get_input(false);
-    let map = Map::from_string(&input);
-    println!("{}", part1(map));
+    let state = State::from_string(&input);
 
-    let map2 = Map::from_string(&input);
-    println!("{}", part2(map2));
+    println!("{}", part1(&state.map, state.guard));
+    println!("{}", part2(&state.map, state.guard));
 }
 
 fn get_input(toy: bool) -> String {
@@ -141,22 +148,22 @@ fn get_input(toy: bool) -> String {
     fs::read_to_string(path).unwrap()
 }
 
-fn part1(mut map: Map) -> usize {
+fn part1(map: &Map, mut guard: Guard) -> usize {
     let mut guard_positions: HashSet<Pos> = HashSet::new();
-    guard_positions.insert(map.guard.pos);
+    guard_positions.insert(guard.pos);
 
     // seems like cycles are not possible
-    while map.move_guard(None) {
-        guard_positions.insert(map.guard.pos);
+    while map.move_guard(&mut guard, None) {
+        guard_positions.insert(guard.pos);
     }
 
     guard_positions.len()
 }
 
 // diff approach: the grid isn't that big. Check all the positions
-fn part2(mut map: Map) -> usize {
+fn part2(map: &Map, guard: Guard) -> usize {
     let mut new_obstacle_positions: HashSet<Pos> = HashSet::new();
-    let start_guard_pos = map.guard.pos;
+    let start_guard_pos = guard.pos;
 
     for x in 0..=map.max_x {
         for y in 0..=map.max_y {
@@ -164,7 +171,9 @@ fn part2(mut map: Map) -> usize {
             if pos == start_guard_pos || map.obstacles.contains(&pos) {
                 continue;
             }
-            if check_cycle(&mut map, pos) {
+            // guard implements copy, so this will give it a fresh guard instance to move around
+            // without impacting subsequent iterations.
+            if check_cycle(map, guard, pos) {
                 new_obstacle_positions.insert(pos);
             }
         }
@@ -173,22 +182,16 @@ fn part2(mut map: Map) -> usize {
     new_obstacle_positions.len()
 }
 
-fn check_cycle(map: &mut Map, extra_obstacle: Pos) -> bool {
-    // need to put this back where we found it
-    let start_guard = map.guard;
-
+fn check_cycle(map: &Map, mut guard: Guard, extra_obstacle: Pos) -> bool {
     let mut past_guard_states: HashSet<Guard> = HashSet::new();
-    past_guard_states.insert(map.guard);
-    // seems like cycles are not possible
-    while map.move_guard(Some(extra_obstacle)) {
-        if past_guard_states.contains(&map.guard) {
-            map.guard = start_guard;
+    past_guard_states.insert(guard);
+
+    while map.move_guard(&mut guard, Some(extra_obstacle)) {
+        if past_guard_states.contains(&guard) {
             return true;
         }
-        past_guard_states.insert(map.guard);
+        past_guard_states.insert(guard);
     }
-
-    map.guard = start_guard;
 
     false
 }
@@ -200,16 +203,16 @@ mod tests {
     #[test]
     fn part1_answer() {
         let input = get_input(false);
-        let map = Map::from_string(&input);
-        let result = part1(map);
+        let state = State::from_string(&input);
+        let result = part1(&state.map, state.guard);
         assert_eq!(result, 5453);
     }
 
     #[test]
     fn part2_answer() {
         let input = get_input(false);
-        let map = Map::from_string(&input);
-        let result = part2(map);
+        let state = State::from_string(&input);
+        let result = part2(&state.map, state.guard);
         assert_eq!(result, 2188);
     }
 }
