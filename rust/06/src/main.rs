@@ -219,6 +219,9 @@ fn check_cycle(map: &Map, mut guard: Guard, extra_obstacle: Pos) -> bool {
 
 #[cfg(test)]
 mod tests {
+    // cargo test --release -- --nocapture 
+    // to get better performance (12s -> 1s for part2_rayon) and to let it print
+
     use super::*;
     use std::time::Instant;
 
