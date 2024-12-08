@@ -1,3 +1,4 @@
+use rayon::prelude::*;
 use std::{collections::HashSet, fs};
 
 // "up" is +y! flipping the array to start.
@@ -140,7 +141,7 @@ fn main() {
     let state = State::from_string(&input);
 
     println!("{}", part1(&state.map, state.guard));
-    println!("{}", part2(&state.map, state.guard));
+    println!("{}", part2_rayon(&state.map, state.guard));
 }
 
 fn get_input(toy: bool) -> String {
@@ -182,6 +183,26 @@ fn part2(map: &Map, guard: Guard) -> usize {
     new_obstacle_positions.len()
 }
 
+fn part2_rayon(map: &Map, guard: Guard) -> usize {
+    all_possible_positions(map, guard.pos)
+        .par_iter()
+        .filter(|&&pos| check_cycle(map, guard, pos))
+        .count()
+}
+
+fn all_possible_positions(map: &Map, start_guard_pos: Pos) -> Vec<Pos> {
+    let mut positions = Vec::new();
+    for x in 0..=map.max_x {
+        for y in 0..=map.max_y {
+            let pos = Pos { x, y };
+            if pos != start_guard_pos && !map.obstacles.contains(&pos) {
+                positions.push(pos);
+            }
+        }
+    }
+    positions
+}
+
 fn check_cycle(map: &Map, mut guard: Guard, extra_obstacle: Pos) -> bool {
     let mut past_guard_states: HashSet<Guard> = HashSet::new();
     past_guard_states.insert(guard);
@@ -199,6 +220,7 @@ fn check_cycle(map: &Map, mut guard: Guard, extra_obstacle: Pos) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::time::Instant;
 
     #[test]
     fn part1_answer() {
@@ -209,10 +231,28 @@ mod tests {
     }
 
     #[test]
-    fn part2_answer() {
+    fn part2_for_loop() {
         let input = get_input(false);
         let state = State::from_string(&input);
+
+        let start = Instant::now();
         let result = part2(&state.map, state.guard);
+        let duration = start.elapsed();
+        println!("part2 duration (non-rayon): {:?}", duration);
+
+        assert_eq!(result, 2188);
+    }
+
+    #[test]
+    fn part2_with_rayon() {
+        let input = get_input(false);
+        let state = State::from_string(&input);
+
+        let start = Instant::now();
+        let result = part2_rayon(&state.map, state.guard);
+        let duration = start.elapsed();
+        println!("part2 duration (rayon parallelized): {:?}", duration);
+
         assert_eq!(result, 2188);
     }
 }
