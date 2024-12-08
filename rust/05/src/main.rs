@@ -33,7 +33,7 @@ fn parse_rules(rule_str: &str) -> RuleMap {
         .lines()
         .map(parse_rule_tuple)
         .fold(HashMap::new(), |mut acc, (p1, p2)| {
-            acc.entry(p1).or_insert(HashSet::new()).insert(p2);
+            acc.entry(p1).or_default().insert(p2);
             acc
         })
 }
