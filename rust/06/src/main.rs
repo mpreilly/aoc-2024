@@ -174,22 +174,23 @@ fn part2(map: &Map, guard: Guard) -> usize {
 
 fn check_cycle(map: &Map, mut guard: Guard, extra_obstacle: Pos) -> bool {
     let mut past_guard_states: HashSet<Guard> = HashSet::new();
-    past_guard_states.insert(guard);
 
-    while map.move_guard(&mut guard, Some(extra_obstacle)) {
+    // do-while: doing all the work in the where condition, weird.
+    while {
         if past_guard_states.contains(&guard) {
             return true;
         }
         past_guard_states.insert(guard);
-    }
+        map.move_guard(&mut guard, Some(extra_obstacle))
+    } {}
 
     false
 }
 
 #[cfg(test)]
 mod tests {
-    // cargo test --release -- --nocapture 
-    // to get better performance (12s -> 1s for part2_rayon) and to let it print
+    // cargo test --release -- --nocapture
+    // to get better performance and let it print
 
     use super::*;
     use std::time::Instant;
