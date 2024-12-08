@@ -141,7 +141,7 @@ fn main() {
     let state = State::from_string(&input);
 
     println!("{}", part1(&state.map, state.guard));
-    println!("{}", part2_rayon(&state.map, state.guard));
+    println!("{}", part2(&state.map, state.guard));
 }
 
 fn get_input(toy: bool) -> String {
@@ -149,7 +149,11 @@ fn get_input(toy: bool) -> String {
     fs::read_to_string(path).unwrap()
 }
 
-fn part1(map: &Map, mut guard: Guard) -> usize {
+fn part1(map: &Map, guard: Guard) -> usize {
+    get_guard_positions(map, guard).len()
+}
+
+fn get_guard_positions(map: &Map, mut guard: Guard) -> HashSet<Pos> {
     let mut guard_positions: HashSet<Pos> = HashSet::new();
     guard_positions.insert(guard.pos);
 
@@ -158,49 +162,14 @@ fn part1(map: &Map, mut guard: Guard) -> usize {
         guard_positions.insert(guard.pos);
     }
 
-    guard_positions.len()
+    guard_positions
 }
 
-// diff approach: the grid isn't that big. Check all the positions
 fn part2(map: &Map, guard: Guard) -> usize {
-    let mut new_obstacle_positions: HashSet<Pos> = HashSet::new();
-    let start_guard_pos = guard.pos;
-
-    for x in 0..=map.max_x {
-        for y in 0..=map.max_y {
-            let pos = Pos { x, y };
-            if pos == start_guard_pos || map.obstacles.contains(&pos) {
-                continue;
-            }
-            // guard implements copy, so this will give it a fresh guard instance to move around
-            // without impacting subsequent iterations.
-            if check_cycle(map, guard, pos) {
-                new_obstacle_positions.insert(pos);
-            }
-        }
-    }
-
-    new_obstacle_positions.len()
-}
-
-fn part2_rayon(map: &Map, guard: Guard) -> usize {
-    all_possible_positions(map, guard.pos)
+    get_guard_positions(map, guard)
         .par_iter()
-        .filter(|&&pos| check_cycle(map, guard, pos))
+        .filter(|&&pos| pos != guard.pos && check_cycle(map, guard, pos))
         .count()
-}
-
-fn all_possible_positions(map: &Map, start_guard_pos: Pos) -> Vec<Pos> {
-    let mut positions = Vec::new();
-    for x in 0..=map.max_x {
-        for y in 0..=map.max_y {
-            let pos = Pos { x, y };
-            if pos != start_guard_pos && !map.obstacles.contains(&pos) {
-                positions.push(pos);
-            }
-        }
-    }
-    positions
 }
 
 fn check_cycle(map: &Map, mut guard: Guard, extra_obstacle: Pos) -> bool {
@@ -234,25 +203,12 @@ mod tests {
     }
 
     #[test]
-    fn part2_for_loop() {
+    fn part2_answer() {
         let input = get_input(false);
         let state = State::from_string(&input);
 
         let start = Instant::now();
         let result = part2(&state.map, state.guard);
-        let duration = start.elapsed();
-        println!("part2 duration (non-rayon): {:?}", duration);
-
-        assert_eq!(result, 2188);
-    }
-
-    #[test]
-    fn part2_with_rayon() {
-        let input = get_input(false);
-        let state = State::from_string(&input);
-
-        let start = Instant::now();
-        let result = part2_rayon(&state.map, state.guard);
         let duration = start.elapsed();
         println!("part2 duration (rayon parallelized): {:?}", duration);
 
