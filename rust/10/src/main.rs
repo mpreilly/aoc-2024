@@ -17,12 +17,17 @@ fn get_input(toy: bool) -> Map {
         .collect()
 }
 
-fn part1(map: &Map) -> usize {
+fn part1(map: &Map) -> u32 {
+    sum_value(map, get_reachable_peak_count)
+}
+
+fn part2(map: &Map) -> u32 {
+    sum_value(map, get_trail_count)
+}
+
+fn sum_value(map: &Map, value_func: impl Fn(&Map, usize, usize) -> u32) -> u32 {
     let trailheads = get_trailhead_set(map);
-    trailheads
-        .iter()
-        .map(|&(r, c)| get_reachable_peak_count(map, r, c))
-        .sum()
+    trailheads.iter().map(|&(r, c)| value_func(map, r, c)).sum()
 }
 
 fn get_trailhead_set(map: &Map) -> HashSet<Pos> {
@@ -37,49 +42,40 @@ fn get_trailhead_set(map: &Map) -> HashSet<Pos> {
     trailheads
 }
 
-fn get_reachable_peak_count(map: &Map, start_r: usize, start_c: usize) -> usize {
-    let mut reachable_peaks: HashSet<Pos> = HashSet::new();
-    let mut frontier: Vec<Pos> = vec![(start_r, start_c)];
-
-    while let Some(cur_pos) = frontier.pop() {
-        let cur_val = map[cur_pos.0][cur_pos.1];
-        if cur_val == 9 {
-            reachable_peaks.insert(cur_pos);
-            continue;
-        }
-        if cur_pos.0 > 0 && map[cur_pos.0 - 1][cur_pos.1] == cur_val + 1 {
-            frontier.push((cur_pos.0 - 1, cur_pos.1))
-        }
-        if cur_pos.1 > 0 && map[cur_pos.0][cur_pos.1 - 1] == cur_val + 1 {
-            frontier.push((cur_pos.0, cur_pos.1 - 1))
-        }
-        if cur_pos.0 < map.len() - 1 && map[cur_pos.0 + 1][cur_pos.1] == cur_val + 1 {
-            frontier.push((cur_pos.0 + 1, cur_pos.1))
-        }
-        if cur_pos.1 < map[0].len() - 1 && map[cur_pos.0][cur_pos.1 + 1] == cur_val + 1 {
-            frontier.push((cur_pos.0, cur_pos.1 + 1))
-        }
-    }
-
-    reachable_peaks.len()
+// unused, just for kicks
+fn get_trailhead_set_functional(map: &Map) -> HashSet<Pos> {
+    map.iter()
+        .enumerate()
+        .flat_map(|(r, row)| {
+            row.iter()
+                .enumerate()
+                .filter(|(_, &val)| val == 0)
+                .map(move |(c, _)| (r, c))
+        })
+        .collect()
 }
 
-fn part2(map: &Map) -> u32 {
-    let trailheads = get_trailhead_set(map);
-    trailheads
-        .iter()
-        .map(|&(r, c)| get_trail_count(map, r, c))
-        .sum()
+fn get_reachable_peak_count(map: &Map, start_r: usize, start_c: usize) -> u32 {
+    let mut reachable_peaks: HashSet<Pos> = HashSet::new();
+    peak_search(map, start_r, start_c, |pos| {
+        reachable_peaks.insert(pos);
+    });
+    reachable_peaks.len() as u32
 }
 
 fn get_trail_count(map: &Map, start_r: usize, start_c: usize) -> u32 {
-    let mut trail_count= 0;
+    let mut trail_count = 0;
+    peak_search(map, start_r, start_c, |_| trail_count += 1);
+    trail_count
+}
+
+fn peak_search(map: &Map, start_r: usize, start_c: usize, mut top_action: impl FnMut(Pos)) {
     let mut frontier: Vec<Pos> = vec![(start_r, start_c)];
 
     while let Some(cur_pos) = frontier.pop() {
         let cur_val = map[cur_pos.0][cur_pos.1];
         if cur_val == 9 {
-            trail_count += 1;
+            top_action(cur_pos);
             continue;
         }
         if cur_pos.0 > 0 && map[cur_pos.0 - 1][cur_pos.1] == cur_val + 1 {
@@ -95,8 +91,6 @@ fn get_trail_count(map: &Map, start_r: usize, start_c: usize) -> u32 {
             frontier.push((cur_pos.0, cur_pos.1 + 1))
         }
     }
-
-    trail_count
 }
 
 #[cfg(test)]
