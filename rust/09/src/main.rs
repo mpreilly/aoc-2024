@@ -3,6 +3,10 @@ use std::{fs, u16};
 // length of array to turn input into straight line: 95450
 // which means largest file id is 47,725; can fit into u16
 
+// representation of empty block
+// messy, but ids start at 0 and we can't do '.' in u16, so use max val
+const EMPTY: u16 = u16::MAX;
+
 fn main() {
     let input = get_input(false);
     println!("part 1: {}", part1(&input));
@@ -20,34 +24,32 @@ fn get_input(toy: bool) -> Vec<u8> {
 }
 
 fn part1(map: &[u8]) -> u64 {
-    // messy, but ids start at 0 and we can't do '.' in u16, so use max val
-    let empty = u16::MAX;
-    let mut blocks = build_block_vec(map, empty);
+    let mut blocks = build_block_vec(map);
 
     let mut next_empty = 0;
-    while blocks[next_empty] != empty {
+    while blocks[next_empty] != EMPTY {
         next_empty += 1;
     }
 
     let mut cur_block = blocks.len() - 1;
     while cur_block > next_empty {
         let id = blocks[cur_block];
-        if id != empty {
+        if id != EMPTY {
             blocks[next_empty] = id;
-            blocks[cur_block] = empty;
-            while blocks[next_empty] != empty {
+            blocks[cur_block] = EMPTY;
+            while blocks[next_empty] != EMPTY {
                 next_empty += 1;
             }
         }
         cur_block -= 1
     }
 
-    calculate_checksum(&blocks, empty)
+    calculate_checksum(&blocks)
 }
 
-fn build_block_vec(map: &[u8], empty: u16) -> Vec<u16> {
+fn build_block_vec(map: &[u8]) -> Vec<u16> {
     let total_space: usize = map.iter().fold(0, |acc, n| acc + (*n as usize));
-    let mut blocks = vec![empty; total_space];
+    let mut blocks = vec![EMPTY; total_space];
 
     let mut file_id = 0;
     let mut cur_block = 0_usize;
@@ -67,9 +69,9 @@ fn build_block_vec(map: &[u8], empty: u16) -> Vec<u16> {
     blocks
 }
 
-fn calculate_checksum(blocks: &[u16], empty: u16) -> u64 {
+fn calculate_checksum(blocks: &[u16]) -> u64 {
     blocks.iter().enumerate().fold(0, |acc, (i, n)| {
-        acc + if *n != empty {
+        acc + if *n != EMPTY {
             (*n as u64) * (i as u64)
         } else {
             0
@@ -78,13 +80,12 @@ fn calculate_checksum(blocks: &[u16], empty: u16) -> u64 {
 }
 
 fn part2(map: &[u8]) -> u64 {
-    let empty = u16::MAX;
-    let mut blocks = build_block_vec(map, empty);
+    let mut blocks = build_block_vec(map);
 
     let mut cur_block = blocks.len() - 1;
     while cur_block > 0 {
         let id = blocks[cur_block];
-        if id != empty {
+        if id != EMPTY {
             let file_end = cur_block + 1;
             while cur_block > 0 && blocks[cur_block - 1] == id {
                 cur_block -= 1;
@@ -93,32 +94,31 @@ fn part2(map: &[u8]) -> u64 {
             let file_size = file_end - file_start;
 
             if let Some(empty_start) =
-                find_first_large_enough_empty(&blocks, file_size, file_start, empty)
+                find_first_large_enough_empty(&blocks, file_size, file_start)
             {
                 for i in 0..file_size {
                     blocks[empty_start + i] = blocks[file_start + i];
-                    blocks[file_start + i] = empty;
+                    blocks[file_start + i] = EMPTY;
                 }
             }
         }
         cur_block = cur_block.saturating_sub(1);
     }
 
-    calculate_checksum(&blocks, empty)
+    calculate_checksum(&blocks)
 }
 
 fn find_first_large_enough_empty(
     blocks: &[u16],
     size: usize,
     end: usize,
-    empty: u16,
 ) -> Option<usize> {
     let mut cur_block = 0;
     while cur_block < end {
         let id = blocks[cur_block];
-        if id == empty {
+        if id == EMPTY {
             let empty_start = cur_block;
-            while blocks[cur_block + 1] == empty {
+            while blocks[cur_block + 1] == EMPTY {
                 cur_block += 1;
             }
             let empty_end = cur_block;
